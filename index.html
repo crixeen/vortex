@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Vortex</title>
+		<link rel="stylesheet" href="./public/css/fonts.css" />
+		<link rel="stylesheet" href="./public/css/styles.css" />
+		<style>
+			/* ── Estado "en cola" para la cola de descargas ── */
+			.qs-pend {
+				background: rgba(112, 174, 224, 0.08);
+				color: var(--info);
+				border: 1px solid rgba(112, 174, 224, 0.2);
+			}
+
+			/* ── Botones de calidad deshabilitados ── */
+			.qb:disabled {
+				opacity: 0.28;
+				cursor: not-allowed;
+				pointer-events: none;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="toast-root"></div>
+
+		<!-- ── TITLEBAR ──────────────────────────────────────────────── -->
+		<div class="titlebar">
+			<div class="tb-left">
+				<div class="win-btns">
+					<div class="wb wb-close" onclick="vortex.closeWindow()"></div>
+					<div class="wb wb-min" onclick="vortex.minimizeWindow()"></div>
+					<div class="wb wb-max" onclick="vortex.maximizeWindow()"></div>
+				</div>
+				<span class="tb-logo">Vor<em>tex</em></span>
+			</div>
+			<div class="tb-right">
+				<div class="tool-pill" id="pill-ytdlp" onclick="window._vortex.handleToolClick('ytdlp')">yt-dlp</div>
+				<div class="tool-pill" id="pill-ffmpeg" onclick="window._vortex.handleToolClick('ffmpeg')">ffmpeg</div>
+			</div>
+		</div>
+
+		<!-- ── APP ───────────────────────────────────────────────────── -->
+		<div class="app">
+			<!-- SIDEBAR -->
+			<aside class="sidebar">
+				<div class="nav-section">
+					<div class="nav-section-label">Principal</div>
+					<button class="ni active" id="nav-download" onclick="window._vortex.switchPanel('download')">
+						<div class="ni-left"><span class="ni-icon">↓</span>Descargar</div>
+					</button>
+					<button class="ni" id="nav-queue" onclick="window._vortex.switchPanel('queue')">
+						<div class="ni-left"><span class="ni-icon">◫</span>Cola</div>
+						<span class="ni-badge" id="queue-badge" style="display: none">0</span>
+					</button>
+					<button class="ni" id="nav-history" onclick="window._vortex.switchPanel('history')">
+						<div class="ni-left"><span class="ni-icon">◷</span>Historial</div>
+					</button>
+				</div>
+				<div class="sdiv"></div>
+				<div class="nav-section">
+					<div class="nav-section-label">Sistema</div>
+					<button class="ni" id="nav-settings" onclick="window._vortex.switchPanel('settings')">
+						<div class="ni-left"><span class="ni-icon">⊙</span>Ajustes</div>
+					</button>
+				</div>
+				<div class="sb-bottom">
+					<div class="sb-label">
+						<span>Completados</span>
+						<span id="dl-count">0 / 0</span>
+					</div>
+					<div class="sb-bar">
+						<div class="sb-fill" id="queue-fill" style="width: 0%"></div>
+					</div>
+				</div>
+			</aside>
+
+			<!-- MAIN -->
+			<main class="main">
+				<div class="topbar">
+					<div class="page-title" id="page-title">Desc<em>argar</em></div>
+					<div class="topbar-actions">
+						<button class="cx-btn ghost sm" onclick="window._vortex.pasteUrl()">↑ Pegar</button>
+						<button class="cx-btn primary sm" id="btn-analyze" onclick="window._vortex.analyzeUrl()">→ Analizar</button>
+					</div>
+				</div>
+
+				<div class="content">
+					<!-- ══ PANEL: DOWNLOAD ═══════════════════════════════════ -->
+					<div id="panel-download" class="panel active">
+						<!-- Wizard -->
+						<div class="cx-card" id="setupWizard" style="display: none">
+							<p class="card-kicker">// configuración inicial</p>
+							<h2 class="card-title">Conf<em>iguración</em></h2>
+							<p style="font-family: var(--fb); font-size: 0.76rem; color: var(--text2); line-height: 1.6; margin-bottom: 1.1rem">
+								Vortex necesita yt-dlp y ffmpeg. Instálalos automáticamente con un clic.
+							</p>
+							<div class="wizard-tools">
+								<div class="wizard-tool" id="wt-ytdlp">
+									<div class="wt-header">
+										<span class="wt-name">yt-dlp</span>
+										<span class="wt-badge" id="wtb-ytdlp">Verificando…</span>
+									</div>
+									<p class="wt-desc">Motor de descarga. Soporta YouTube, Vimeo, Twitter/X, TikTok y +1000 sitios.</p>
+									<div class="wt-progress" id="wtp-ytdlp">
+										<div class="wt-fill" id="wtf-ytdlp" style="width: 0%"></div>
+									</div>
+									<div class="wt-msg" id="wtm-ytdlp"></div>
+									<button class="cx-btn primary sm" id="wbtn-ytdlp" style="margin-top: 0.7rem" onclick="window._vortex.installYtdlp()" disabled>Instalar</button>
+								</div>
+								<div class="wizard-tool" id="wt-ffmpeg">
+									<div class="wt-header">
+										<span class="wt-name">ffmpeg</span>
+										<span class="wt-badge" id="wtb-ffmpeg">Verificando…</span>
+									</div>
+									<p class="wt-desc">Procesador multimedia. Convierte, mezcla y codifica audio y video.</p>
+									<div class="wt-progress" id="wtp-ffmpeg">
+										<div class="wt-fill" id="wtf-ffmpeg" style="width: 0%"></div>
+									</div>
+									<div class="wt-msg" id="wtm-ffmpeg"></div>
+									<button class="cx-btn primary sm" id="wbtn-ffmpeg" style="margin-top: 0.7rem" onclick="window._vortex.installFfmpeg()" disabled>
+										Instalar
+									</button>
+								</div>
+							</div>
+							<p style="font-family: var(--fm); font-size: 0.6rem; color: var(--muted2)">Binarios locales · sin instalación en el sistema</p>
+						</div>
+
+						<!-- URL input -->
+						<div class="cx-card">
+							<div class="ch">
+								<span style="font-family: var(--fm); font-size: 0.72rem; color: var(--muted2)">⊙</span>
+								<span class="ct">URL · YouTube · Vimeo · Twitter/X · TikTok</span>
+							</div>
+							<input
+								class="cx-input"
+								id="urlInput"
+								type="text"
+								placeholder="https://www.youtube.com/watch?v=…"
+								onkeydown="if (event.key === 'Enter') window._vortex.analyzeUrl();"
+							/>
+							<!-- "Playlist completa" eliminado — solo Video único y Selección -->
+							<div class="mode-toggle">
+								<button class="mtab active" onclick="window._vortex.setMode(this, 'single')">Video único</button>
+								<button class="mtab" onclick="window._vortex.setMode(this, 'playlist-select')">Selección de playlist</button>
+							</div>
+						</div>
+
+						<!-- Preview single -->
+						<div id="previewCard" style="display: none" class="cx-card">
+							<div class="preview-inner">
+								<div class="preview-thumb" id="prevThumb" onclick="window._vortex.openThumbModal()">
+									<span class="thumb-placeholder">// preview</span>
+									<div class="prev-duration" id="prevDur">--:--</div>
+									<div class="thumb-overlay">⊕ ampliar</div>
+								</div>
+								<div class="preview-info">
+									<div class="prev-title" id="prevTitle">—</div>
+									<div class="prev-meta">
+										<span class="pm" id="prevCh">—</span>
+										<span class="pm">·</span>
+										<span class="pm" id="prevDate">—</span>
+										<span class="pm">·</span>
+										<span class="pm" id="prevViews">—</span>
+									</div>
+									<div class="prev-meta"><span class="pm" id="prevRes"></span></div>
+									<div class="prev-desc" id="prevDesc"></div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Playlist (selección) -->
+						<div id="playlistCard" style="display: none" class="cx-card">
+							<div class="ch">
+								<span style="font-family: var(--fm); font-size: 0.72rem; color: var(--muted2)">◫</span>
+								<span class="ct">Contenido de la playlist</span>
+								<span style="margin-left: auto; font-family: var(--fm); font-size: 0.62rem; color: var(--muted)" id="plCount"></span>
+							</div>
+							<div class="pl-sel-bar" id="plSelBar" style="display: none">
+								<span class="pl-sel-btn" onclick="window._vortex.selectAllPl()">Todo</span>
+								<span style="color: var(--muted2); font-family: var(--fm); font-size: 0.62rem">·</span>
+								<span class="pl-sel-btn" onclick="window._vortex.selectNonePl()">Ninguno</span>
+								<span style="color: var(--muted2); font-family: var(--fm); font-size: 0.62rem">·</span>
+								<span style="font-family: var(--fm); font-size: 0.62rem; color: var(--muted)" id="plSelCount">0 seleccionados</span>
+							</div>
+							<div class="playlist-list" id="playlistList"></div>
+						</div>
+
+						<!-- Format -->
+						<div class="cx-card" id="formatCard" style="display: none">
+							<div class="ch">
+								<span style="font-family: var(--fm); font-size: 0.72rem; color: var(--muted2)">⊞</span>
+								<span class="ct">Formato y calidad</span>
+							</div>
+							<div class="fmt-grid">
+								<div>
+									<div class="fsl">Tipo de descarga</div>
+									<div class="ftabs">
+										<button class="ftab active" onclick="window._vortex.setType(this, 'video')">Video</button>
+										<button class="ftab" onclick="window._vortex.setType(this, 'audio')">Solo Audio</button>
+									</div>
+									<div class="fsl" id="qLabel">Calidad de video</div>
+									<div class="qgrid" id="qGrid">
+										<button class="qb" onclick="window._vortex.setQ(this)"><span class="ql">4K</span><span class="qs">2160p</span></button>
+										<button class="qb active" onclick="window._vortex.setQ(this)"><span class="ql">FHD</span><span class="qs">1080p</span></button>
+										<button class="qb" onclick="window._vortex.setQ(this)"><span class="ql">HD</span><span class="qs">720p</span></button>
+										<button class="qb" onclick="window._vortex.setQ(this)"><span class="ql">SD</span><span class="qs">480p</span></button>
+									</div>
+								</div>
+								<div>
+									<div class="fsl">Contenedor / Codec</div>
+									<div class="qgrid three" id="cGrid">
+										<button class="qb active" onclick="window._vortex.setCodec(this)"><span class="ql">MP4</span><span class="qs">H.264</span></button>
+										<button class="qb" onclick="window._vortex.setCodec(this)"><span class="ql">MKV</span><span class="qs">H.265</span></button>
+										<button class="qb" onclick="window._vortex.setCodec(this)"><span class="ql">WEBM</span><span class="qs">VP9</span></button>
+									</div>
+									<div class="fsl" style="margin-top: 0.95rem">Opciones</div>
+									<div class="opts-g">
+										<div class="ot on" id="opt-subs" onclick="this.classList.toggle('on')">
+											<span class="ol">Subtítulos</span>
+											<div class="tsw">
+												<div class="tk"></div>
+											</div>
+										</div>
+										<div class="ot" id="opt-thumb" onclick="this.classList.toggle('on')">
+											<span class="ol">Thumbnail</span>
+											<div class="tsw">
+												<div class="tk"></div>
+											</div>
+										</div>
+										<div class="ot on" id="opt-notify" onclick="this.classList.toggle('on')">
+											<span class="ol">Notificar</span>
+											<div class="tsw">
+												<div class="tk"></div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Download bar -->
+						<div class="dl-bar" id="dlBar" style="display: none">
+							<div class="dl-info">
+								<div class="dl-fname" id="dlFname">—</div>
+								<div class="dl-size" id="dlSize">Listo para descargar</div>
+							</div>
+							<button class="btn-dl" id="btnDl" onclick="window._vortex.startDownload()">↯ Descargar</button>
+						</div>
+
+						<!-- Progress -->
+						<div class="prog-card" id="progCard" style="display: none">
+							<div class="prog-header">
+								<div class="prog-name" id="progName">Descargando…</div>
+								<div class="prog-right">
+									<div class="sdot" id="sdot"></div>
+									<div class="spct" id="spct">0%</div>
+									<button class="cx-btn ghost sm" style="padding: 0.28rem 0.6rem" onclick="window._vortex.cancelDl()">✕</button>
+								</div>
+							</div>
+							<div class="cx-progress-track">
+								<div class="cx-progress-fill active" id="pbf"></div>
+							</div>
+							<div class="pstats">
+								<span>Vel: <span id="dlSpeed">—</span></span>
+								<span>ETA: <span id="dlEta">—</span></span>
+								<span>Tam: <span id="dlDown">—</span></span>
+							</div>
+						</div>
+
+						<!-- Error -->
+						<div class="cx-alert danger" id="errBox" style="display: none">
+							<span class="cx-alert-icon">✕</span>
+							<span id="errMsg"></span>
+						</div>
+					</div>
+					<!-- /panel-download -->
+
+					<!-- ══ PANEL: QUEUE ═══════════════════════════════════════ -->
+					<div id="panel-queue" class="panel">
+						<div class="cx-card">
+							<div class="ch">
+								<span style="font-family: var(--fm); font-size: 0.72rem; color: var(--muted2)">◫</span>
+								<span class="ct">Cola de descargas</span>
+							</div>
+							<div id="queueList">
+								<div class="cx-empty">
+									<div class="cx-empty-icon">◻</div>
+									<div class="cx-empty-title">Sin descargas</div>
+									<div class="cx-empty-text">Las descargas activas aparecerán aquí.</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- ══ PANEL: HISTORY ════════════════════════════════════ -->
+					<div id="panel-history" class="panel">
+						<div class="cx-card">
+							<div class="ch">
+								<span style="font-family: var(--fm); font-size: 0.72rem; color: var(--muted2)">◷</span>
+								<span class="ct">Historial</span>
+								<button class="cx-btn ghost sm" style="margin-left: auto; padding: 0.28rem 0.6rem" onclick="window._vortex.clearHistory()">Limpiar</button>
+							</div>
+							<div id="historyList">
+								<div class="cx-empty">
+									<div class="cx-empty-icon">◻</div>
+									<div class="cx-empty-title">Sin historial</div>
+									<div class="cx-empty-text">Las descargas completadas aparecerán aquí.</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- ══ PANEL: SETTINGS ═══════════════════════════════════ -->
+					<div id="panel-settings" class="panel">
+						<div class="cx-card">
+							<p class="card-kicker">// preferencias del sistema</p>
+							<h2 class="card-title">A<em>justes</em></h2>
+							<div class="sr">
+								<div>
+									<div class="sl2">Carpeta de destino</div>
+									<div class="sd" id="outDirDisp">—</div>
+								</div>
+								<div class="pr">
+									<input type="text" id="outDirIn" readonly />
+									<button class="cx-btn outline sm" onclick="window._vortex.chooseDir()">⊕</button>
+								</div>
+							</div>
+							<div class="sr">
+								<div>
+									<div class="sl2">yt-dlp</div>
+									<div class="sd" id="s-ytdlp">—</div>
+								</div>
+								<button class="cx-btn primary sm" onclick="window._vortex.doUpdateYtdlp(this)">↻ Actualizar</button>
+							</div>
+							<div class="sr">
+								<div>
+									<div class="sl2">ffmpeg</div>
+									<div class="sd" id="s-ffmpeg">—</div>
+								</div>
+								<button class="cx-btn outline sm" onclick="window._vortex.installFfmpeg()">↓ Reinstalar</button>
+							</div>
+							<div class="sr">
+								<div>
+									<div class="sl2">Historial</div>
+									<div class="sd">Eliminar todos los registros guardados</div>
+								</div>
+								<button class="cx-btn ghost sm" onclick="window._vortex.clearHistory()">Limpiar</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- /content -->
+			</main>
+		</div>
+		<!-- /app -->
+
+		<!-- Thumbnail modal -->
+		<div class="thumb-modal-bd" id="thumbModal" style="display: none" onclick="window._vortex.closeThumbModal(event)">
+			<div class="thumb-modal-close" onclick="window._vortex.closeThumbModal()">✕ cerrar</div>
+			<img
+				id="thumbModalImg"
+				src=""
+				alt="thumbnail"
+				style="border-radius: var(--r); max-width: 85vw; max-height: 85vh; object-fit: contain; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65)"
+				onclick="event.stopPropagation()"
+			/>
+			<div class="thumb-strip" id="thumbStrip"></div>
+		</div>
+
+		<script type="module" src="./src/index.js"></script>
+	</body>
+</html>

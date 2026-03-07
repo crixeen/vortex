@@ -1,0 +1,57 @@
+{
+	"name": "vortex",
+	"version": "1.0.0",
+	"description": "VORTEX — YouTube Downloader powered by yt-dlp",
+	"main": "electron/main.js",
+	"homepage": "https://github.com/crixeen/vortex",
+	"author": {
+		"name": "Crixeen",
+		"url": "https://github.com/crixeen"
+	},
+	"scripts": {
+		"start": "electron .",
+		"build": "electron-builder",
+		"format": "prettier --write ."
+	},
+	"devDependencies": {
+		"electron": "^28.0.0",
+		"electron-builder": "^24.0.0",
+		"prettier": "3.8.1"
+	},
+	"build": {
+		"appId": "com.vortex.downloader",
+		"productName": "VORTEX",
+		"copyright": "Copyright © 2025 VORTEX",
+		"directories": {
+			"output": "dist"
+		},
+		"files": [
+			"electron/**/*",
+			"src/**/*",
+			"public/**/*",
+			"assets/**/*",
+			"index.html"
+		],
+		"linux": {
+			"target": [
+				{
+					"target": "AppImage",
+					"arch": [
+						"x64"
+					]
+				}
+			],
+			"icon": "assets/icon.png",
+			"category": "Network",
+			"synopsis": "YouTube & web video downloader",
+			"description": "Descarga videos y audio de YouTube, Vimeo, TikTok y más de 1000 sitios usando yt-dlp y ffmpeg.",
+			"maintainer": "VORTEX Team"
+		},
+		"rpm": {
+			"fpm": [
+				"--rpm-os",
+				"linux"
+			]
+		}
+	}
+}
